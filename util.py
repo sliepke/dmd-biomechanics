@@ -22,10 +22,10 @@ def from_JSON_obj(obj, objname, fieldname, accepted_types):
 	Returns:
 		obj[fieldname]
 	Raises:
-		ValueError if:
-			- obj does not contain fieldname as a key
-			- obj[fieldname] is not one of the accepted types
-		The ValueError will contain an appropriate message, in the
+		- ValueError, if obj does not contain fieldname as a key
+		- TypeError, if obj[fieldname] is not one of the accepted types
+		
+		The Exception will contain an appropriate message, in the
 		context of extracting values of a JSON file containing obj
 	"""
 	if fieldname not in obj:
@@ -38,7 +38,7 @@ def from_JSON_obj(obj, objname, fieldname, accepted_types):
 				types_str += ", "
 			typ = accepted_types[i]
 			types_str += typ.__name__
-		raise ValueError("File's " + objname + "[" + fieldname + "] field must " +
+		raise TypeError("File's " + objname + "[" + fieldname + "] field must " +
 			"be one of the following types: " + types_str)
 	return field
 
@@ -53,11 +53,11 @@ def from_JSON_array(arr, arrname, index, accepted_types):
 	Returns:
 		arr[index]
 	Raises:
-		ValueError if:
-			- index is out of bounds
-			- arr[index] is not one of the accepted types
-		The ValueError will contain an appropriate message, in the
-		context of extracting values of a JSON file containing arr
+		- ValueError, if index is out of bounds
+		- TypeError, if arr[index] is not one of the accepted types
+		
+		The Exception will contain an appropriate message, in the
+		context of extracting values of a JSON file containing obj
 	"""
 	if index not in range(len(arr)):
 		raise ValueError("File's '" + arrname + "' array is missing index " + str(index))
@@ -69,7 +69,7 @@ def from_JSON_array(arr, arrname, index, accepted_types):
 				types_str += ", "
 			typ = accepted_types[i]
 			types_str += typ.__name__
-		raise ValueError("File's " + arrname + "[" + str(index) + "] value must " +
+		raise TypeError("File's " + arrname + "[" + str(index) + "] value must " +
 			"be one of the following types: " + types_str)
 	return val
 

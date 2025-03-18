@@ -1,0 +1,14 @@
+{
+	"gravity": 4,
+	"static_COF": 20,
+	"kinetic_COF": 12,
+	"normal_force_coefficients_1": [2, 2, 3],
+	"normal_force_coefficients_2": [2, 2, 3],
+	"ground_point": [0, -1],
+	"point_sequence": [
+		[-5, 0],
+		[-3, 1],
+		[-1, 0],
+		[5, 0]
+	]
+}

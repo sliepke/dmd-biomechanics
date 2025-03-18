@@ -50,7 +50,7 @@ class EmptyEnvironment:
 		"""
 		return -1
 	
-	def environment_force(self, mass, position, velocity, other_force):
+	def force(self, mass, position, velocity, other_force):
 		return np.array([0., 0.])
 	
 	def round_velocity(self, position, velocity):
@@ -88,10 +88,10 @@ class LineEnvironment:
 	def __init__(self):
 		""" Create a new LineEnvironment instance """
 		self.gravity = 9.8
-		self.static_COF = 0.209
-		self.kinetic_COF = 0.209
-		self.nf_coefficients_1 = [50., 50., 50.]
-		self.nf_coefficients_2 = [50., 0., 0.]
+		self.static_COF = 0.209 # 0.209
+		self.kinetic_COF = 0.209 # 0.209
+		self.nf_coefficients_1 = [800., 1500., 1000.]
+		self.nf_coefficients_2 = [800., 0., 1000.]
 		pass
 	
 	# -- public methods -- #
@@ -108,17 +108,14 @@ class LineEnvironment:
 			return 0
 		return 1
 	
-	def environment_force(self, mass, position, velocity, other_force):
-		if self.in_ground(position) == 1:
-			return np.array([0., 0.])
-		
+	def force(self, mass, position, velocity, other_force):
 		# determine gravity force magnitude (always downwards, right? RIGHT?)
-		
 		gmag = - mass * self.gravity
+		if self.in_ground(position) == 1:
+			return np.array([0., gmag])
 		
 		# determine normal force magnitude (upwards -> positive, downwards -> negative)
-		
-		r = - point[1]
+		r = - position[1]
 		rp = - velocity[1]
 		if rp > 0:
 			nf_cfs = self.nf_coefficients_1
@@ -127,19 +124,17 @@ class LineEnvironment:
 		nmag = r * nf_cfs[0] + rp * nf_cfs[1] + nf_cfs[2]
 		
 		# determine friction force magnitude (towards +x -> positive, towards -x -> negative)
-		
 		using_static_friction = abs(velocity[0]) < static_friction_threshold
 		if using_static_friction:
-			fmag = min(abs(nmag) * self.static_COF, abs(other_force[1]))
+			fmag = min(abs(nmag) * self.static_COF, abs(other_force[0]))
 			if other_force[0] > 0:
-				f_mag *= -1
+				fmag *= -1
 		else:
 			fmag = abs(nmag) * self.kinetic_COF
 			if velocity[0] > 0:
 				fmag *= -1
 		
 		# return sum of forces
-		
 		return np.array([fmag, gmag + nmag])
 	
 	def round_velocity(self, position, velocity):
@@ -476,7 +471,7 @@ class ComplexEnvironment:
 		return 1
 	
 	
-	def environment_force(self, mass, position, velocity, other_force):
+	def force(self, mass, position, velocity, other_force):
 		# start with gravity
 		gravity_force = np.array([0, - self.gravity * mass])
 		non_ground_force = other_force + gravity_force

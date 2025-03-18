@@ -15,22 +15,34 @@ class Body:
 	Is able to:
 		- Determine position of all point masses, as a function of all joint
 		  flexion angles and the position of 2 root points masses
-		- Estimate bodily forces exerted on the points masses at a moment in time,
+		- Estimate bodily forces exerted on the point masses at a moment in time,
 		  as a function of the point masses' positions, velocities, and joint
 		  activation levels
 	"""
+	def get_num_point_masses(self):
+		return len(self.point_names)
+	def get_num_joints(self):
+		return len(self.joints)
+	def get_mass_of(self, point_index):
+		""" point index is an int in [0, number of point masses) """
+		return self.point_masses[point_index]
 	
 	
 	def __init__(self, filename):
 		"""
+		...
 		"""
 		with open(filename) as file:
 			obj = json.load(file)
+		if type(obj) != dict:
+			raise ValueError("Expected root to be object")
 		
 		segment_stiffness = float( from_JSON_obj(obj, "root", \
 			"segment-stiffness", [float, int]) )
 		segment_dampening = float( from_JSON_obj(obj, "root", \
 			"segment-dampening", [float, int]) )
+		joint_dampening = float( from_JSON_obj(obj, "root", \
+			"joint-dampening", [float, int]) )
 		
 		self.point_masses = from_JSON_obj(obj, "root", "point-masses", [dict])
 		# verify types in point mass dictionary
@@ -43,7 +55,7 @@ class Body:
 		pm_cp = [0] * len(self.point_names)
 		for i in range(len(self.point_names)):
 			pm_cp[i] = self.point_masses[self.point_names[i]]
-		self.point_masses = pm_cp
+		self.point_masses = np.array(pm_cp)
 		
 		# convert each 'segment' (element of "segments" list in json) into a list of
 		# the form [point mass 1 index, point mass 2 index, _Body_Segment instance]
@@ -91,6 +103,8 @@ class Body:
 			from_JSON_obj(entry, "joints." + key, "end", [str])
 			entry["offset"] = float( from_JSON_obj(entry, "joints." + key, \
 				"offset", [float, int]) )
+			entry["transition"] = float( from_JSON_obj(entry, "joints." + key, \
+				"transition", [float, int]) )
 			
 			def convert_parameters(params_name, param_list):
 				from_JSON_obj(entry, "joints." + key, \
@@ -122,11 +136,75 @@ class Body:
 				raise ValueError( entry[2] + \
 					" is listed as a segment endpoint, but not a point mass")
 			
-			j_instance = _Joint(entry["offset"], pp, fp, ep)
+			j_instance = _Joint(entry["offset"], entry["transition"], \
+				joint_dampening, pp, fp, ep)
 			self.joints[key] = [p1_index, p2_index, p3_index, j_instance]
+		
+		self.joint_keys_ordered = list(self.joints)
 	
 	
-	def positions(self, flexion_angles, root1, root1x, root1y, root2, theta):
+	def positions(self, filename):
+		"""
+		Load positions of all point masses in the body from given file.
+		
+		Returns the position of every point mass in the body, as a 1d
+		numpy array in the following order:
+			point 1 x, point 1 y, point 2 x, point 2 y, ...
+		
+		File is in JSON format and contains the following information:
+			- the position of one point mass
+			- the rotation of another point mass relative to the first
+			- the flexion angles of all joints in the body (or enough
+			  joints to completely determine all point masses' positions
+		"""
+		with open(filename) as file:
+			obj = json.load(file)
+		if type(obj) != dict:
+			raise ValueError("Expected root of JSON to be object")
+		
+		# validate outermost types
+		root1 = from_JSON_obj(obj, "root", "root1", [str])
+		root1_pos = from_JSON_obj(obj, "root", "root1-position", [list])
+		root2 = from_JSON_obj(obj, "root", "root2", [str])
+		root2_rotation = float( from_JSON_obj(obj, "root", \
+			"root2-rotation", [float, int]) )
+		flexion_angles = from_JSON_obj(obj, "root", "flexion-angles", [dict])
+		
+		# validate nested types
+		root1x = float( from_JSON_array(root1_pos, "root1-position", \
+			0, [float, int]) )
+		root1y = float( from_JSON_array(root1_pos, "root1-position", \
+			1, [float, int]) )
+		for key in flexion_angles:
+			flexion_angles[key] = float( from_JSON_obj(flexion_angles, \
+				"flexion-angles", key, [float, int]) )
+		
+		# convert root1 and root2 into indices
+		try:
+			root1 = self.point_names.index(root1)
+		except ValueError:
+			raise ValueError(filename + "'s root1, " + root1 + \
+				", is not a point mass in the body")
+		try:
+			root2 = self.point_names.index(root2)
+		except ValueError:
+			raise ValueError(filename + "'s root2, " + root2 + \
+				", is not a point mass in the body")
+		
+		# convert flexion angles into ordered list
+		fa_new = [None] * len(self.joints)
+		for key in flexion_angles:
+			if key not in self.joints:
+				raise ValueError(filename + "contains a flexion angle" + \
+					"not in the body: " + key)
+			index = self.joint_keys_ordered.index(key)
+			fa_new[index] = flexion_angles[key]
+		
+		return self.__positions(fa_new, root1, root1x, root1y, \
+			root2, root2_rotation)
+	
+	
+	def __positions(self, flexion_angles, root1, root1x, root1y, root2, theta):
 		"""
 		Given flexion angles for each joint in the body, the position of 1 point
 		mass in the body, and the angle of another point relative to the known
@@ -134,12 +212,11 @@ class Body:
 		
 		Parameters:
 			...
-			flexion_angles are in degrees
+			flexion_angles are in degrees (or None if not specified)
 			
 			theta is in degrees, and is the counterclockwise angle of root2 relative
 			to root1 (where 0 degrees means root2 is to the right of root1)
 		"""
-		
 		theta *= math.pi / 180
 		positions = np.array([[0.0, 0.0]] * len(self.point_names))
 		
@@ -164,17 +241,18 @@ class Body:
 		# -- make list of constraints for each point -- #
 		
 		constraints = [[] for i in range(len(self.point_names))]
-		joint_keys_ordered = list(self.joints)
-		for i in range(len(joint_keys_ordered)):
-			joint_entry = self.joints[joint_keys_ordered[i]]
+		for i in range(len(self.joint_keys_ordered)):
+			# if flexion angle not specified, skip this iteration
+			if flexion_angles[i] is None:
+				continue
+			# name the joint entry elements
+			joint_entry = self.joints[self.joint_keys_ordered[i]]
 			joint = joint_entry[3]
 			b = joint_entry[0]
 			c = joint_entry[1]
 			e = joint_entry[2]
-			
 			# counterclockwise angle of ce relative to cb
-			angle = (flexion_angles[i] - joint.offset) * math.pi / 180
-			
+			angle = flexion_angles[i] - joint.offset
 			# find lengths of ce and cb
 			ce_length = None
 			cb_length = None
@@ -190,18 +268,11 @@ class Body:
 			if cb_length is None:
 				raise RuntimeError("There is a joint " + str(b) + "-" + str(c) + \
 					"-" + str(e) + " but no segment between " + str(c) + " and " + str(b))
-			
 			# add constraint details to set of constraints
 			b_constraint = [c, e, -angle, cb_length]
 			e_constraint = [c, b, angle, ce_length]
 			constraints[b].append(b_constraint)
 			constraints[e].append(e_constraint)
-		
-		for point in range(len(self.point_names)):
-			print(point)
-			for constraint in constraints[point]:
-				print("\t", constraint, sep="")
-		print()
 		
 		# -- solve system of constraints, in a very inefficient way -- #
 		
@@ -211,7 +282,6 @@ class Body:
 		ct_index = 0
 		
 		while True:
-			print(pt_index, ct_index, sep=", ")
 			if pt_index >= len(self.point_names):
 				break
 			if pt_index in known_pts:
@@ -239,7 +309,6 @@ class Body:
 			known_pts.add(pt_index)
 			pt_index = 0
 			ct_index = 0
-			print("\tsolved: ", pos)
 		
 		if len(known_pts) < len(self.point_names):
 			raise RuntimeError("Could not determine all point mass positions. " + \
@@ -251,7 +320,7 @@ class Body:
 		return positions.flatten()
 	
 	
-	def forces(positions, vels, activations):
+	def forces(self, pos, vel, activations, debug=False):
 		"""
 		Given the positions and velocities of every point mass in body, and the activation
 		level of every joint in the body, determines the bodily forces exerted on every
@@ -262,24 +331,24 @@ class Body:
 			- The active torques of each joint, which is modelled as described in
 			  Journal of Biomechanics 40.14 (2007): 3105-3113.
 		
+		Returns a 1d numpy array of length (2 * number of point masses of this body),
+		containing the forces on the point masses in the following order:
+			x force on point #1, y force on point #2, x force on point #2, ...
+		
 		Note that the point masses and joints are ordered. This contradicts the current
 		JSON format being used, where the set of point masses and set of joints are given
 		as objects rather than lists.
 		
 		Parameters:
-			positions       1d numpy array of length (2 * number of point masses of this body)
-				Positions of all the point masses, given in the following order:
-				point mass #1 x, point mass #1 y, point mass #2 x, point mass #2 y, ...
-			
-			vels            1d numpy array of length (2 * number of point masses of this body)
-				Velocities of all the point masses, given in the following order:
-				point mass #1 x, point mass #1 y, point mass #2 x, point mass #2 y, ...
-			
+			state           2 x (2 * number of point masses) numpy array
+				Positions and velocities of all points masses in the body. The position
+				of the point mass with index i is (state[0][2 * i], state[0][2 * i + 1]),
+				and the velocity is (state[1][2 * i], state[1][2 * i + 1]),
 			activations     1d numpy array of length (number of joints of this body)
 				Activation levels of each joint, each activation level being
 				between -1.0 (full exertion extension) and 1.0 (full exertion flexion)
 		"""
-		force_list = np.array([0.0] * len(positions))
+		force_list = np.array([0.0] * len(pos))
 		
 		# -- segment forces -- #
 		
@@ -288,39 +357,54 @@ class Body:
 			segment = segment_entry[2]
 			
 			# get positions and velocities of the 2 endpoints of the segment
-			p1pos = np.array([positions[2 * p1index], positions[2 * p1index + 1]])
-			p1vel = np.array([vels[2 * p1index], vels[2 * p1index + 1]])
-			p2pos = np.array([positions[2 * p2index], positions[2 * p2index + 1]])
-			p2vel = np.array([vels[2 * p2index], vels[2 * p2index + 1]])
+			p1pos = np.array([pos[2 * p1index], pos[2 * p1index + 1]])
+			p1vel = np.array([vel[2 * p1index], vel[2 * p1index + 1]])
+			p2pos = np.array([pos[2 * p2index], pos[2 * p2index + 1]])
+			p2vel = np.array([vel[2 * p2index], vel[2 * p2index + 1]])
 			
 			# determine forces on the 2 endpoints of the segment
 			(p1f, p2f) = segment.forces(p1pos, p1vel, p2pos, p2vel)
 			
-			force_list[2 * p1index] = p1f[0]; force_list[2 * p1index + 1] = p1f[0]
-			force_list[2 * p2index] = p2f[0]; force_list[2 * p2index + 1] = p2f[0]
+			if debug:
+				print("Segment", p1index, p2index, "forces:")
+				print("\t", p1index, ": ", p1f, sep="")
+				print("\t", p2index, ": ", p2f, sep="")
+			
+			force_list[2 * p1index] += p1f[0]; force_list[2 * p1index + 1] += p1f[1]
+			force_list[2 * p2index] += p2f[0]; force_list[2 * p2index + 1] += p2f[1]
 		
 		# -- joint forces -- #
 		
-		for key in self.joints:
-			joint_entry = self.joints[key]
+		for i in range(len(self.joint_keys_ordered)):
+			joint_entry = self.joints[self.joint_keys_ordered[i]]
 			bindex = joint_entry[0]; cindex = joint_entry[1]; eindex = joint_entry[2]
 			joint = joint_entry[3]
 			
 			# get positions and velocities of the 3 endpoints of the joint
-			bpos = np.array([positions[2 * bindex], positions[2 * bindex + 1]])
-			bvel = np.array([vels[2 * bindex], vels[2 * bindex + 1]])
-			cpos = np.array([positions[2 * cindex], positions[2 * cindex + 1]])
-			cvel = np.array([vels[2 * cindex], vels[2 * cindex + 1]])
-			epos = np.array([positions[2 * eindex], positions[2 * eindex + 1]])
-			evel = np.array([vels[2 * eindex], vels[2 * eindex + 1]])
+			bpos = pos[2 * bindex : 2 * bindex + 2]
+			cpos = pos[2 * cindex : 2 * cindex + 2]
+			epos = pos[2 * eindex : 2 * eindex + 2]
+			bvel = vel[2 * bindex : 2 * bindex + 2]
+			cvel = vel[2 * cindex : 2 * cindex + 2]
+			evel = vel[2 * eindex : 2 * eindex + 2]
 			
 			# determine forces on the 3 endpoints of the joint
 			(bf, cf, ef) = joint.forces(bpos, bvel, cpos, cvel, \
 				epos, evel, activations[i])
 			
-			force_list[2 * bindex] = bf[0]; force_list[2 * bindex + 1] = bf[1]
-			force_list[2 * cindex] = cf[0]; force_list[2 * cindex + 1] = cf[1]
-			force_list[2 * eindex] = ef[0]; force_list[2 * eindex + 1] = ef[1]
+			if debug and {6, 0, 1} == {bindex, cindex, eindex}:
+				print("Joint", bindex, cindex, eindex, "forces:")
+				print("\t", bindex, ": ", bf, sep="")
+				print("\t", cindex, ": ", cf, sep="")
+				print("\t", eindex, ": ", ef, sep="")
+				print("Joint calculation start")
+				joint.forces(bpos, bvel, cpos, cvel, epos, evel, activations[i], debug=True)
+				print("Joint calculation end")
+				#print("- Joint end:", bindex, cindex, eindex)
+			
+			force_list[2 * bindex] += bf[0]; force_list[2 * bindex + 1] += bf[1]
+			force_list[2 * cindex] += cf[0]; force_list[2 * cindex + 1] += cf[1]
+			force_list[2 * eindex] += ef[0]; force_list[2 * eindex + 1] += ef[1]
 		
 		return force_list
 
@@ -344,6 +428,15 @@ class _Joint:
 		- offset
 			Number of degrees added to the counterclockwise angle (0 <= a < 360) of
 			line segment CenterEnd relative to CenterBase, to result in the flexion angle
+		- transition
+			Once the flexion angle (taken as a value in [0 deg, 360 deg)) is past this
+			angle, this joint is considered to be extended rather than flexed, and the
+			the direction of passive torque is flipped (assuming typical passive torque
+			parameters)
+		- dampening
+			Multiplied by the joint angular velocity (rad / s) to produce a torque (N * m)
+			against the direction of the angular velocity. Prevents the joints from
+			bouncing back and forth
 		- passive_params
 			List of the 4 passive joint parameters B1, k1, B2, k2 as described in
 			Journal of Biomechanics 40.14 (2007): 3105-3113.
@@ -354,14 +447,15 @@ class _Joint:
 			List of the 4 active joint parameters for extension C1, C2, ..., C6 as
 			described in Journal of Biomechanics 40.14 (2007): 3105-3113.
 	"""
-	
-	
-	def __init__(self, offset, passive_params, active_flexion_params, active_extension_params):
+	def __init__(self, offset, transition, dampening, passive_params, active_flexion_params, \
+		active_extension_params):
 		"""
 		Create a new Joint with the given parameters. See Class description for the
 		meaning of the parameters.
 		"""
-		self.offset = offset
+		self.offset = math.pi * offset / 180
+		self.transition = math.pi * transition / 180
+		self.dampening = dampening
 		
 		self.B1 = passive_params[0]
 		self.k1 = passive_params[1]
@@ -383,7 +477,7 @@ class _Joint:
 		self.EC6 = active_extension_params[5]
 	
 	
-	def forces(b, bvel, c, cvel, e, evel, activation):
+	def forces(self, b, bvel, c, cvel, e, evel, activation, debug=False):
 		"""
 		(See Class description for definitions of base, center, and end)
 		
@@ -405,27 +499,36 @@ class _Joint:
 		
 		dot = np.dot(base, end)
 		det = base[0] * end[1] - base[1] * end[0]
-		theta = np.arctan2(det, dot) + (math.pi * self.offset / 180)
+		theta = np.arctan2(det, dot) + self.offset
+		# take theta to be in (-180 deg, 180 deg]
+		theta %= (2 * math.pi)
+		# take theta to be in (-transition, transition]
+		if theta > self.transition:
+			theta -= 2 * math.pi
 		
 		# -- determine flexion angular velocity -- #
 		
 		b_relative_vel = bvel - cvel
 		b_angular_vel_direction = np.array([-base[1], base[0]])
 		b_angular_vel = component(b_relative_vel, b_angular_vel_direction)
+		b_angular_vel /= np.linalg.norm(base)
 		
 		e_relative_vel = evel - cvel
 		e_angular_vel_direction = np.array([-end[1], end[0]])
 		e_angular_vel = component(e_relative_vel, e_angular_vel_direction)
+		e_angular_vel /= np.linalg.norm(end)
 		
-		thetha_prime = e_angular_vel - b_angular_vel
+		theta_prime = e_angular_vel - b_angular_vel
 		
 		# -- determine torque using passive / active torque model -- #
 		
 		t_passive = self.B1 * math.exp(self.k1 * theta) + \
-		            self.B2 * math.exp(self.k2 * theta)
+		            self.B2 * math.exp(self.k2 * theta) - \
+					theta_prime * self.dampening
 		
 		# extension exertion
 		if activation < 0:
+			if debug: print("extension exertion")
 			# (angular velocity positive in extension formula angular velocity is extending)
 			theta_prime *= -1
 			
@@ -442,13 +545,16 @@ class _Joint:
 						   (2 * self.EC4 * self.EC5 - theta_prime * (2 * self.EC5 - 4 * self.EC4))
 		# flexion exertion
 		if activation > 0:
+			if debug: print("flexion exertion")
 			# concentric / stationary angular velocity
 			if theta_prime >= 0:
+				if debug: print("concentric or stationary angular velocity")
 				t_active = self.FC1 * math.cos(self.FC2 * (theta - self.FC3)) * \
 				           (2 * self.FC4 * self.FC5 + theta_prime * (self.FC5 - 3 * self.FC4)) / \
 						   (2 * self.FC4 * self.FC5 + theta_prime * (2 * self.FC5 - 4 * self.FC4))
 			# eccentric angular velocity
 			else:
+				if debug: print("eccentric angular velocity")
 				t_active = (1 - self.FC6 * theta_prime) * \
 				           self.FC1 * math.cos(self.FC2 * (theta - self.FC3)) * \
 				           (2 * self.FC4 * self.FC5 - theta_prime * (self.FC5 - 3 * self.FC4)) / \
@@ -459,6 +565,12 @@ class _Joint:
 		
 		t_active *= activation
 		t_total = t_passive + t_active
+		
+		if debug:
+			print("flexion angle:", theta)
+			print("flexion angular velocity:", theta_prime)
+			print("t_passive:", t_passive)
+			print("t_active:", t_active)
 		
 		# -- turn torques into forces on 3 point masses -- #
 		
@@ -479,15 +591,13 @@ class _Body_Segment:
 	which pushes the endpoints of the segment toward or away from each other,
 	which keeps the segment at a similar length.
 	"""
-	
-	
 	def __init__(self, resting_length, stiffness, dampening):
 		self.resting_length = resting_length
 		self.stiffness = stiffness
 		self.dampening = dampening
 	
 	
-	def forces(p1, p1vel, p2, p2vel):
+	def forces(self, p1, p1vel, p2, p2vel):
 		"""
 		Determines the forces exerted on the endpoints (p1, p2) of this body segment
 		when p1 and p2 have the given positions and velocities. Returns the tuple
@@ -499,7 +609,7 @@ class _Body_Segment:
 		r = p1p2_norm - self.resting_length
 		rp = component(p2vel - p1vel, p1p2)
 		
-		rf_mag = - r * stiffness - rp * dampening
+		rf_mag = r * self.stiffness + rp * self.dampening
 		p1_feels = p1p2 * (rf_mag / p1p2_norm)
 		p2_feels = - p1_feels
 		return (p1_feels, p2_feels)
