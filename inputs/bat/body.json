@@ -1,0 +1,35 @@
+{
+	"segment-stiffness": 5000,
+	"segment-damping": 5000,
+	"joint-damping": 0.5,
+	
+	"point-masses": {
+		"head": 10,
+		"left-hand": 3,
+		"right-hand": 3
+	},
+	
+	"segments": [
+		["head", "left-hand", 0.5],
+		["head", "right-hand", 0.5]
+	],
+	
+	"joints": {
+		"wing-joint": {
+			"end": "left-hand",
+			"center": "head",
+			"base": "right-hand",
+			"offset": 180,
+			"transition": 200,
+			"passive-torque-parameters": {
+				"B1": 53816, "k1": -40, "B2": -1.432e-50, "k2": 40
+			},
+			"flexion-parameters": {
+				"C1": 200, "C2": 1.12, "C3": 1.48, "C4": 1.48, "C5": 3.69, "C6": 0.33
+			},
+			"extension-parameters": {
+				"C1": 100, "C2": 1.12, "C3": 1.52, "C4": 1.48, "C5": 3.69, "C6": 0.33
+			}
+		}
+	}
+}

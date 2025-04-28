@@ -1,0 +1,203 @@
+{
+	"segment-stiffness": 5000,
+	"segment-damping": 5000,
+	"joint-damping": 0.5,
+	
+	"point-masses": {
+		"top": 24.9485, "hip": 30.8205,
+		"elbow1": 2.339, "hand1": 1.0225,
+		"elbow2": 2.339, "hand2": 1.0225,
+		"knee1": 6.1765, "ankle1": 2.501, "toe1": 0.577,
+		"knee2": 6.1765, "ankle2": 2.501, "toe2": 0.577
+	},
+	
+	"segments": [
+		["top", "hip", 0.54],
+		
+		["top", "elbow1", 0.31],
+		["elbow1", "hand1", 0.283],
+		
+		["top", "elbow2", 0.31],
+		["elbow2", "hand2", 0.283],
+		
+		["hip", "knee1", 0.418],
+		["knee1", "ankle1", 0.445],
+		["ankle1", "toe1", 0.153],
+		
+		["hip", "knee2", 0.418],
+		["knee2", "ankle2", 0.445],
+		["ankle2", "toe2", 0.153]
+	],
+	
+	"joints": {
+		"shoulder1": {
+			"end": "elbow1",
+			"center": "top",
+			"base": "hip",
+			"offset": 0,
+			"transition": 190,
+			"passive-torque-parameters": {
+				"B1": 0.123, "k1": -5.738, "B2": -2.018e-5, "k2": 5.738
+			},
+			"flexion-parameters": {
+				"C1": 63.0, "C2": 1.12, "C3": 0.52, "C4": 1.48, "C5": 3.69, "C6": 0.33
+			},
+			"extension-parameters": {
+				"C1": 87.0, "C2": 1.12, "C3": 1.57, "C4": 1.48, "C5": 3.69, "C6": 0.33
+			}
+		},
+		
+		"shoulder2": {
+			"end": "elbow2",
+			"center": "top",
+			"base": "hip",
+			"offset": 0,
+			"transition": 190,
+			"passive-torque-parameters": {
+				"B1": 0.123, "k1": -5.738, "B2": -2.018e-5, "k2": 5.738
+			},
+			"flexion-parameters": {
+				"C1": 63.0, "C2": 1.12, "C3": 0.52, "C4": 1.48, "C5": 3.69, "C6": 0.33
+			},
+			"extension-parameters": {
+				"C1": 87.0, "C2": 1.12, "C3": 1.57, "C4": 1.48, "C5": 3.69, "C6": 0.33
+			}
+		},
+		
+		"elbow1": {
+			"end": "hand1",
+			"center": "elbow1",
+			"base": "top",
+			"offset": 180,
+			"transition": 250,
+			"passive-torque-parameters": {
+				"B1": 50, "k1": -5.738, "B2": -1.495e-5, "k2": 5.738
+			},
+			"flexion-parameters": {
+				"C1": 57.3, "C2": 1.12, "C3": 1.48, "C4": 1.48, "C5": 3.69, "C6": 0.33
+			},
+			"extension-parameters": {
+				"C1": 44.41, "C2": 1.12, "C3": 1.52, "C4": 1.48, "C5": 3.69, "C6": 0.33
+			}
+		},
+		
+		"elbow2": {
+			"end": "hand2",
+			"center": "elbow2",
+			"base": "top",
+			"offset": 180,
+			"transition": 250,
+			"passive-torque-parameters": {
+				"B1": 50, "k1": -5.738, "B2": -1.495e-5, "k2": 5.738
+			},
+			"flexion-parameters": {
+				"C1": 57.3, "C2": 1.12, "C3": 1.48, "C4": 1.48, "C5": 3.69, "C6": 0.33
+			},
+			"extension-parameters": {
+				"C1": 44.41, "C2": 1.12, "C3": 1.52, "C4": 1.48, "C5": 3.69, "C6": 0.33
+			}
+		},
+		
+		"hip1": {
+			"end": "knee1",
+			"center": "hip",
+			"base": "top",
+			"offset": 180,
+			"transition": 180,
+			"passive-torque-parameters": {
+				"B1": 1.21, "k1": -6.351, "B2": -4.648e-3, "k2": 5.91
+			},
+			"flexion-parameters": {
+				"C1": 16.4754, "C2": 0.738, "C3": -0.214, "C4": 2.095, "C5": 4.267, "C6": 0.218
+			},
+			"extension-parameters": {
+				"C1": 23.4738, "C2": 0.958, "C3": 0.932, "C4": 1.578, "C5": 3.190, "C6": 0.242
+			}
+		},
+		
+		"hip2": {
+			"end": "knee2",
+			"center": "hip",
+			"base": "top",
+			"offset": 180,
+			"transition": 180,
+			"passive-torque-parameters": {
+				"B1": 1.21, "k1": -6.351, "B2": -4.648e-3, "k2": 5.91
+			},
+			"flexion-parameters": {
+				"C1": 16.4754, "C2": 0.738, "C3": -0.214, "C4": 2.095, "C5": 4.267, "C6": 0.218
+			},
+			"extension-parameters": {
+				"C1": 23.4738, "C2": 0.958, "C3": 0.932, "C4": 1.578, "C5": 3.190, "C6": 0.242
+			}
+		},
+		
+		"knee1": {
+			"end": "hip",
+			"center": "knee1",
+			"base": "ankle1",
+			"offset": 180,
+			"transition": 250,
+			"passive-torque-parameters": {
+				"B1": 6.25, "k1": -4.521, "B2": -2.018e-6, "k2": 5.738
+			},
+			"flexion-parameters": {
+				"C1": 12.6846, "C2": 0.869, "C3": 0.522, "C4": 2.008, "C5": 5.233, "C6": 0.304
+			},
+			"extension-parameters": {
+				"C1": 23.7654, "C2": 1.258, "C3": 1.133, "C4": 1.517, "C5": 3.952, "C6": 0.095
+			}
+		},
+		
+		"knee2": {
+			"end": "hip",
+			"center": "knee2",
+			"base": "ankle2",
+			"offset": 180,
+			"transition": 250,
+			"passive-torque-parameters": {
+				"B1": 6.25, "k1": -4.521, "B2": -2.018e-6, "k2": 5.738
+			},
+			"flexion-parameters": {
+				"C1": 12.6846, "C2": 0.869, "C3": 0.522, "C4": 2.008, "C5": 5.233, "C6": 0.304
+			},
+			"extension-parameters": {
+				"C1": 23.7654, "C2": 1.258, "C3": 1.133, "C4": 1.517, "C5": 3.952, "C6": 0.095
+			}
+		},
+		
+		"ankle1": {
+			"end": "toe1",
+			"center": "ankle1",
+			"base": "knee1",
+			"offset": 270,
+			"transition": 120,
+			"passive-torque-parameters": {
+				"B1": 5.781e-4, "k1": -5.819, "B2": -0.967, "k2": 6.09
+			},
+			"flexion-parameters": {
+				"C1": 4.8114, "C2": 1.51, "C3": -0.187, "C4": 0.699, "C5": 1.94, "C6": 0.828
+			},
+			"extension-parameters": {
+				"C1": 13.851, "C2": 1.391, "C3": 0.408, "C4": 0.987, "C5": 3.558, "C6": 0.295
+			}
+		},
+		
+		"ankle2": {
+			"end": "toe2",
+			"center": "ankle2",
+			"base": "knee2",
+			"offset": 270,
+			"transition": 120,
+			"passive-torque-parameters": {
+				"B1": 5.781e-4, "k1": -5.819, "B2": -0.967, "k2": 6.09
+			},
+			"flexion-parameters": {
+				"C1": 4.8114, "C2": 1.51, "C3": -0.187, "C4": 0.699, "C5": 1.94, "C6": 0.828
+			},
+			"extension-parameters": {
+				"C1": 13.851, "C2": 1.391, "C3": 0.408, "C4": 0.987, "C5": 3.558, "C6": 0.295
+			}
+		}
+	}
+}

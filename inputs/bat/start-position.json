@@ -1,0 +1,10 @@
+{
+	"root1": "head",
+	"root1-position": [0, 0.1],
+	"root2": "right-hand",
+	"root2-rotation": -5,
+	
+	"flexion-angles": {
+		"wing-joint": 10
+	}
+}
