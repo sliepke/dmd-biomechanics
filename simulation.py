@@ -14,9 +14,15 @@ class Simulation:
 	"""
 	2d biomechanical simulation of human motion.
 	
-	All attributes arrays are updated every tick, but stay as the same reference.
-	They allow the callback functions given as arguments to run() to read the
-	state of the body.
+	All attribute arrays (other than flexion_c1s and extension_c1s) are updated
+	every tick, but stay the same reference.
+	
+	The first 4 arrays allow the callback functions (given as arguments to
+	run()) to read the state of the body.
+	
+	The last arrays 2 allow you to change muscle strengths without creating a
+	new Simulation, which can improve performance if you want to run many trials
+	with varying muscle strengths (see Simulation.reset()).
 	
 	Attributes
 		positions
@@ -27,10 +33,20 @@ class Simulation:
 			as positions).
 		thetas
 			1d numpy array of all joint angles. Is updated every time the
-			positions and velocities update, including during reset()
+			positions and velocities update, including during reset().
 		thetadots
 			1d numpy array of all joint angular velocities. Is updated every
-			time the positions and velocities update, including during reset()
+			time the positions and velocities update, including during reset().
+		flexion_c1s
+			1d numpy array of all C_1^F's, as described in the paper, in the
+			same order as they appear in the file 'body_filename' given to the
+			constructor. if you write to the elements of this array, the
+			simulation will observe the new values.
+		extension_c1s
+			1d numpy array of all C_1^E's, as described in the paper, in the
+			same order as they appear in the file 'body_filename' given to the
+			constructor. if you write to the elements of this array, the
+			simulation will observe the new values.
 	"""
 	
 	
@@ -195,7 +211,7 @@ class Simulation:
 		"""
 		Reset the starting positions and velocities of all point masses.
 		If start_position_filename is None, then the last starting positions
-		will be used.
+		used will be applied.
 		"""
 		if start_position_filename is not None:
 			self.start_position = body.load_start_position(body_obj, start_position_filename)
