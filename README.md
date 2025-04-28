@@ -7,7 +7,7 @@ Note that there is only a source distribution, and I had linkage complications w
 
 from python:
 
-`>>import zxy9_biomechanical_model.simulation as sim`
+`>> import zxy9_biomechanical_model.simulation as sim`
 
 `>> help(sim)`
 
