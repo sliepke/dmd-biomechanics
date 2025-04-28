@@ -13,6 +13,8 @@ from python:
 
 # Examples
 
+Note that input files are not given with the pip install, but are in the repository.
+
 ## Keep the shoulder joint at an angle of 90 degrees, while floating in outer space
 
     import math
