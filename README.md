@@ -9,7 +9,7 @@ from python:
 
 `>> import zxy9_biomechanical_model.simulation as sim`
 
-`>> help(sim)`
+`>> help(sim.Simulation)`
 
 # Examples
 
