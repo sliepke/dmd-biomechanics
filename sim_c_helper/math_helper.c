@@ -76,16 +76,18 @@ parameters
 static void f(Parameters* params, double* p_in, double* v_in, double* dp_out, double* dv_out, double* activations, int debug) {
 	// debug positions
 	if (debug & DBG_POS) {
-		printf("\n\n            POSITIONS\npoint       x position  y position\n");
+		printf("\n\n%12sPOSITIONS\n", "");
+		printf("%-12s%12s%12s\n", "point", "x position", "y position");
 		for (int i = 0; i < params->num_point_masses; i++) {
-			printf("%-12d%-12.2f%-12.2f\n", i, p_in[2 * i], p_in[2 * i + 1]);
+			printf("%- 12d%12.4f%12.4f\n", i, p_in[2 * i], p_in[2 * i + 1]);
 		}
 	}
 	// debug velocities
 	if (debug & DBG_VEL) {
-		printf("\n\n            VELOCITIES\npoint       x velocity  y velocity\n");
+		printf("\n\n%12sVELOCITIES", "");
+		printf("\n%-12s%12s%12s\n", "point", "x velocity", "y velocity");
 		for (int i = 0; i < params->num_point_masses; i++) {
-			printf("%-12d%-12.2f%-12.2f\n", i, v_in[2 * i], v_in[2 * i + 1]);
+			printf("%- 12d%12.4f%12.4f\n", i, v_in[2 * i], v_in[2 * i + 1]);
 		}
 	}
 	
@@ -97,9 +99,10 @@ static void f(Parameters* params, double* p_in, double* v_in, double* dp_out, do
 	
 	// debug net forces
 	if (debug & DBG_NETFORCE) {
-		printf("\n\n            NET FORCE\npoint       x force     y force\n");
+		printf("\n\n%12sNET FORCE\n", "");
+		printf("%-12s%12s%12s\n", "point", "x force", "y force");
 		for (int i = 0; i < params->num_point_masses; i++) {
-			printf("%-12d%-12.2f%-12.2f\n", i, dv_out[2 * i], dv_out[2 * i + 1]);
+			printf("%- 12d%12.4f%12.4f\n", i, dv_out[2 * i], dv_out[2 * i + 1]);
 		}
 	}
 	
@@ -127,8 +130,10 @@ static void f(Parameters* params, double* p_in, double* v_in, double* dp_out, do
 
 // must be called first, since it sets values of f_out (instead of adding to them)
 static void f_gravity(Parameters* params, double* f_out, int debug) {
-	if (debug & DBG_GRAVITY)
-		printf("\n\n            GRAVITY\npoint       +y force\n");
+	if (debug & DBG_GRAVITY) {
+		printf("\n\n%12sGRAVITY\n", "");
+		printf("%-12s%12s\n", "point", "+y force");
+	}
 	
 	double g = params->g;
 	for (int i = 0; i < params->num_point_masses; i++) {
@@ -138,15 +143,16 @@ static void f_gravity(Parameters* params, double* f_out, int debug) {
 		
 		// debug
 		if (debug & DBG_GRAVITY)
-			printf("%-12d%-f\n", i, y_fc);
+			printf("%- 12d%12.4f\n", i, y_fc);
 	}
 }
 
 
 static void f_segment(Parameters* params, double* p_in, double* v_in, double* f_out, int debug) {
 	if (debug & DBG_SEGMENT) {
-		printf("\n\n            SEGMENTS\n");
-		printf("( a, b)     r           r'          x fc on a   y fc on a   x fc on b   y fc on b\n");
+		printf("\n\n%12sSEGMENTS\n", "");
+		printf("%-12s%12s%12s%12s%12s%12s%12s\n", "( a, b)", "r", "r'",
+			"x fc on a", "y fc on a", "x fc on b", "y fc on b");
 	}
 	
 	for (int i = 0; i < params->num_segments; i++) {
@@ -199,7 +205,7 @@ static void f_segment(Parameters* params, double* p_in, double* v_in, double* f_
 		f_out[2 * b + 1] +=  fc_on_by;
 		
 		if (debug & DBG_SEGMENT) {
-			printf("(%2d,%2d)     %-12.2e%-12.2e%-12.2e%-12.2e%-12.2e%-12.2e\n",
+			printf("(%2d,%2d)     %12.4f%12.4f%12.4f%12.4f%12.4f%12.4f\n",
 				a, b, r, r_prime, fc_on_ax, fc_on_ay, fc_on_bx, fc_on_by);
 		}
 	}
@@ -208,9 +214,9 @@ static void f_segment(Parameters* params, double* p_in, double* v_in, double* f_
 
 static void f_joint(Parameters* params, double* p_in, double* v_in, double* f_out, double* activations, int debug) {
 	if (debug & DBG_JOINT) {
-		printf("\n\n            JOINTS\n");
-		printf("( a, b, c)  theta       thetadot    T passive   T active    act directn\n");
-		printf("            x fc on a   y fc on a   x fc on b   y fc on b   x fc on c   y fc on c\n");
+		printf("\n\n%12sJOINTS\n", "");
+		printf("( a, b, c)         theta    thetadot   T passive    T active act directn\n");
+		printf("               x fc on a   y fc on a   x fc on b   y fc on b   x fc on c   y fc on c\n");
 	}
 	for (int i = 0; i < params->num_joints; i++) {
 		Joint* joint = &params->joints[i];
@@ -277,9 +283,9 @@ static void f_joint(Parameters* params, double* p_in, double* v_in, double* f_ou
 				act_direction = "none";
 			}
 			
-			printf("\n(%2d,%2d,%2d)  %-12.2f%-12.2f%-12.2f%-12.2f%-12s\n",
+			printf("\n(%2d,%2d,%2d)  %12.4f%12.4f%12.4f%12.4f%12s\n",
 				a, b, c, theta, thetadot, t_passive, t_active, act_direction);
-			printf("            %-12.2f%-12.2f%-12.2f%-12.2f%-12.2f%-12.2f\n",
+			printf("            %12.4f%12.4f%12.4f%12.4f%12.4f%12.4f\n",
 				fc_on_ax, fc_on_ay, fc_on_bx, fc_on_by, fc_on_cx, fc_on_cy);
 		}
 	}
@@ -289,8 +295,10 @@ static void f_joint(Parameters* params, double* p_in, double* v_in, double* f_ou
 // must be called last since it depends on the values of other forces
 // does normal and friction at the same time, since friction depends on normal force
 static void f_ground(Parameters* params, double* p_in, double* v_in, double* f_out, int debug) {
-	if (debug & DBG_GROUND)
-		printf("\n\n            GROUND\npoint       +x friction force       +y normal force\n");
+	if (debug & DBG_GROUND) {
+		printf("\n\n%12sGROUND\n", "");
+		printf("%-12s%24s%24s\n", "point", "+x friction force", "+y normal force");
+	}
 	
 	// ground force parameters
 	double a_normal = params->A_normal;
@@ -341,7 +349,7 @@ static void f_ground(Parameters* params, double* p_in, double* v_in, double* f_o
 		
 		// debug
 		if (debug & DBG_GROUND)
-			printf("%-12d%-24.2f%-24.2f\n", i, x_fc, y_fc);
+			printf("%-12d%24.4f%24.4f\n", i, x_fc, y_fc);
 	}
 }
 

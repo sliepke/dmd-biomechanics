@@ -59,13 +59,18 @@ class Simulation:
 	# gravity acceleration                 (optional)
 	g=9.81, \
 	# ground force parameters              (optional)
-	A_normal=1e4, B_normal=5e3, mu_s=0.209, mu_k=0.209, zero_velocity_threshold=1e-6, \
+	A_normal=40500.5, B_normal=1e3, mu_s=0.209, mu_k=0.209, zero_velocity_threshold=1e-6, \
 	# numerical solver parameters          (optional)
 	rk4_timestep=8e-5):
 		"""
-		All parameters have the same meaning as in the paper. zero_velocity_threshold
-		is the horizontal speed at which a point mass's horizontal velocity will round
-		to 0.
+		All parameters have the same meaning as in the paper.
+		
+		Note that zero_velocity_threshold is not currently implemented. The value
+		might have to be carefully chosen to make static friction behave as intended,
+		while at the same time not subtly messing up the ability of other forces to
+		change the horizontal direction of point masses instead of just setting them
+		to 0. Since we care about the case when mu_k = mu_s, it shouldn't make an
+		asymptotic difference that it's not implemented.
 		"""
 		# -- convert all args not loaded from a file into the types they're supposed to be -- #
 		
@@ -370,6 +375,8 @@ class Simulation:
 	
 	def __update_display(self):
 		self.canvas.delete("all")
+		# paint ground line on canvas
+		self.canvas.create_line(self.__translate(-10, 0), self.__translate( 10, 0))
 		# paint body segments on canvas
 		for i in range(len(self.segments)):
 			p1_ind = 2 * self.segments[i][0]

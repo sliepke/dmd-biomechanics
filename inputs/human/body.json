@@ -1,6 +1,6 @@
 {
-	"segment-stiffness": 5000,
-	"segment-damping": 5000,
+	"segment-stiffness": 40500.5,
+	"segment-damping": 1000,
 	"joint-damping": 0.5,
 	
 	"point-masses": {
