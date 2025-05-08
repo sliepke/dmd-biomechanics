@@ -31,7 +31,7 @@ from python:
         return np.array([shoulder_act, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=np.double)
     
     s = sim.Simulation( \
-    	"inputs/human/body.json", "inputs/human/start-position.json", \
+    	"RL/RL-inputs/human/body.json", "RL/RL-inputs/human/start-position.json", \
     	# no gravity or ground forces
     	g=0, A_normal=0, B_normal=0, zero_velocity_threshold=0 \
     )
@@ -71,7 +71,7 @@ from python:
     
     # run simulation
     
-    s = sim.Simulation("inputs/human/body.json", "inputs/human/start-position.json",)
+    s = sim.Simulation("RL/RL-inputs/human/body.json", "RL/RL-inputs/human/start-position.json",)
     s.run(
         display=True, speed=1, \
         activations_callback=activations, \
