@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zxy9_biomechanical_model"
-version = "0.0.6"
+version = "0.0.7"
 authors = [
   { name="Sam Liepke", email="samliepke@gmail.com" },
 ]
 description = "A 2d biomechanical model of human motion. Or, the motion of some other kind of animal / robot / thing, if its motion is close enough to 2d and you can find the parameter values for it."
 dependencies = [
-    "numpy",
+    "numpy", "gymnasium"
 ]
 
 [tool.setuptools.packages.find]

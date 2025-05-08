@@ -84,8 +84,8 @@ def rew_run(simu, last_call):
 
 s = sim.Simulation( \
 	# body and start position files
-	"../../src/zxy9_biomechanical_model/inputs/human/body.json", \
-	"../../src/zxy9_biomechanical_model/inputs/human/start-position.json", \
+	"RL-inputs/human/body.json", \
+	"RL-inputs/human/start-position.json", \
 	# reward functions
 	env_reward_functions=[rew_stand, rew_jump, rew_run], \
 	env_stop_times=[3.0, 5.0, 6.0], env_potential_reward_num=5, \

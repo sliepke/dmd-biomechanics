@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import zxy9_biomechanical_model.simulation as sim
 
 
-RK4_TIMESTEP = "1e-2"
+RK4_TIMESTEP = "5e-5"
 
 
 # -- define the analytical solution for r(t) -- #

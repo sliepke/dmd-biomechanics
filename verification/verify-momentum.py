@@ -75,7 +75,7 @@ s = sim.Simulation( \
 )
 
 
-s.run(stop_time=6.0, activations_callback=activations_callback, misc_callback=measure_mm_callback, misc_callback_period=0.01, \
+s.run(stop_time=3.0, activations_callback=activations_callback, misc_callback=measure_mm_callback, misc_callback_period=0.01, \
 # to watch it
 speed=0.5, display=True \
 )

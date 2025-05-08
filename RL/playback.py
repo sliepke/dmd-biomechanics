@@ -7,8 +7,8 @@ from stable_baselines3 import PPO
 from zxy9_biomechanical_model import simulation as sim
 
 s = sim.Simulation( \
-	"../../src/zxy9_biomechanical_model/inputs/human/body.json", \
-	"../../src/zxy9_biomechanical_model/inputs/human/start-position.json", \
+	"RL-inputs/human/body.json", \
+	"RL-inputs/human/start-position.json", \
 	rk4_timestep=1e-5, B_normal=1000 \
 )
 s.extension_c1s[6] *= 1.0
