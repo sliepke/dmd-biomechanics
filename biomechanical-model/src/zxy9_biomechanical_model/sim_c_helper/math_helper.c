@@ -215,7 +215,7 @@ static void f_segment(Parameters* params, double* p_in, double* v_in, double* f_
 static void f_joint(Parameters* params, double* p_in, double* v_in, double* f_out, double* activations, int debug) {
 	if (debug & DBG_JOINT) {
 		printf("\n\n%12sJOINTS\n", "");
-		printf("( a, b, c)         theta    thetadot   T passive    T active act directn\n");
+		printf("( a, b, c)         theta    thetadot   T passive    T active  activation\n");
 		printf("               x fc on a   y fc on a   x fc on b   y fc on b   x fc on c   y fc on c\n");
 	}
 	for (int i = 0; i < params->num_joints; i++) {
@@ -237,6 +237,7 @@ static void f_joint(Parameters* params, double* p_in, double* v_in, double* f_ou
 		} else if (act < 0) {
 			t_active = act * get_t_max_active_extension(joint, theta, thetadot, params->c1es[i]);
 		}
+		
 		// total torque
 		double t = t_passive + t_active;
 		
@@ -274,17 +275,8 @@ static void f_joint(Parameters* params, double* p_in, double* v_in, double* f_ou
 		f_out[2 * b + 1] += fc_on_by;
 		
 		if (debug & DBG_JOINT) {
-			char* act_direction;
-			if (act > 0) {
-				act_direction = "flexion";
-			} else if (act < 0) {
-				act_direction = "extension";
-			} else {
-				act_direction = "none";
-			}
-			
-			printf("\n(%2d,%2d,%2d)  %12.4f%12.4f%12.4f%12.4f%12s\n",
-				a, b, c, theta, thetadot, t_passive, t_active, act_direction);
+			printf("\n(%2d,%2d,%2d)  %12.4f%12.4f%12.4f%12.4f%12.4f\n",
+				a, b, c, theta, thetadot, t_passive, t_active, act);
 			printf("            %12.4f%12.4f%12.4f%12.4f%12.4f%12.4f\n",
 				fc_on_ax, fc_on_ay, fc_on_bx, fc_on_by, fc_on_cx, fc_on_cy);
 		}
@@ -467,42 +459,60 @@ static double get_t_passive(Joint* j, double theta, double thetadot, double damp
 
 // returns maximum voluntary active flexion torque exerted by a joint
 static double get_t_max_active_flexion(Joint* j, double theta, double thetadot, double c1f) {
-	double t;
+	// the maximum active torque equals C1 *
+	//     (thing that gets smaller as theta gets further away from the optimal angle C3) *
+	//     (thing that gets smaller as the magnitude of thetadot gets larger)
+	
+	// note that here we restrict both scaling terms to be nonnegative, whereas
+	// in the paper the maximum torque was restricted to be nonnegative. it's
+	// a subtle difference that prevents torque from being allowed when it
+	// shouldn't. i didn't have time to change the equations in the paper
+	
+	double angle_scale = cos(j->c2f * (theta - j->c3f));
+	if (angle_scale < 0)
+		angle_scale = 0;
+	
+	double angular_vel_scale;
 	if (thetadot >= 0) {
-		t = c1f * cos(j->c2f * (theta - j->c3f)) *
-			(2 * j->c4f * j->c5f + thetadot * (j->c5f - 3 * j->c4f)) / 
+		angular_vel_scale =
+			(2 * j->c4f * j->c5f + thetadot * (j->c5f - 3 * j->c4f)) /
 			(2 * j->c4f * j->c5f + thetadot * (2 * j->c5f - 4 * j->c4f));
 	} else {
-		t = (1 - j->c6f * thetadot) *
-			c1f * cos(j->c2f * (theta - j->c3f)) *
+		angular_vel_scale = (1 - j->c6f * thetadot) *
 			(2 * j->c4f * j->c5f - thetadot * (j->c5f - 3 * j->c4f)) /
 			(2 * j->c4f * j->c5f - thetadot * (2 * j->c5f - 4 * j->c4f));
 	}
-	if (t < 0)
-		return 0;
-	return t;
+	if (angular_vel_scale < 0)
+		angular_vel_scale = 0;
+	
+	return c1f * angle_scale * angular_vel_scale;
 }
 
 
 // returns maximum voluntary active extension torque exerted by a joint
 static double get_t_max_active_extension(Joint* j, double theta, double thetadot, double c1e) {
-	double t;
 	/* in the formula for active extension torque, the other people take thetadot > 0 to
 	   mean rotation towards extension, while we take it to mean rotation towards flexion  */
 	thetadot *= -1;
+	
+	double angle_scale = cos(j->c2e * (theta - j->c3e));
+	if (angle_scale < 0)
+		angle_scale = 0;
+	
+	double angular_vel_scale;
 	if (thetadot >= 0) {
-		t = c1e * cos(j->c2e * (theta - j->c3e)) *
+		angular_vel_scale =
 			(2 * j->c4e * j->c5e + thetadot * (j->c5e - 3 * j->c4e)) /
 			(2 * j->c4e * j->c5e + thetadot * (2 * j->c5e - 4 * j->c4e));
 	} else {
-		t = (1 - j->c6e * thetadot) *
-			c1e * cos(j->c2e * (theta - j->c3e)) *
+		angular_vel_scale = (1 - j->c6e * thetadot) *
 			(2 * j->c4e * j->c5e - thetadot * (j->c5e - 3 * j->c4e)) /
 			(2 * j->c4e * j->c5e - thetadot * (2 * j->c5e - 4 * j->c4e));
 	}
-	if (t < 0)
-		return 0;
-	return t;
+	if (angular_vel_scale < 0)
+		angular_vel_scale = 0;
+	
+	return c1e * angle_scale * angular_vel_scale;
 }
 
 

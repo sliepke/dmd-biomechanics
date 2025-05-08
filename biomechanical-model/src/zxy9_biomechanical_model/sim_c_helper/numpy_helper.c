@@ -90,6 +90,19 @@ validate_fail:
 	return false;
 }
 
+/* checks that PyArray_ISBEHAVED(the given numpy array) returns true. necessary
+   if you want to directly access the data in a simple way. if not behaved,
+   sets an appropriate exception message and returns false. otheriwse,
+   returns true */
+int validate_np_arg_behaved(const char* name, PyArrayObject* np_array) {
+	if (!PyArray_ISBEHAVED(np_array)) {
+        PyErr_SetString(PyExc_ValueError, "A numpy array argument was not contiguous or aligned\n");
+		printf("failing arg: %s\n", name);
+		return false;
+	}
+	return true;
+}
+
 /*
 parameters
 	np_arr

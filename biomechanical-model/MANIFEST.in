@@ -1,0 +1,1 @@
+include src/zxy9_biomechanical_model/sim_c_helper/*.c

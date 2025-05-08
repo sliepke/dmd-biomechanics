@@ -153,6 +153,20 @@ PyObject* Sim_Entry_New(PyTypeObject* type, PyObject* args, PyObject* kwds) {
 	// -- store pointers to the native arrays wrapped by the Sim_Entry's numpy arrays -- //
 	
 	
+	// first, make sure they are contiguous and aligned
+	if (
+		   !validate_np_arg_behaved("flexion_c1s", params->c1fs_np)
+		|| !validate_np_arg_behaved("extension_c1s", params->c1es_np)
+		|| !validate_np_arg_behaved("start_position", self->p_np)
+		|| !validate_np_arg_behaved("v", self->v_np)
+		|| !validate_np_arg_behaved("thetas", self->thetas_np)
+		|| !validate_np_arg_behaved("thetadots", self->thetadots_np)
+	) {
+		// (the call to validate_np_arg_behaved that failed will set the exception + message)
+		Py_DECREF(self);
+		return NULL;
+	}
+	// now, store pointers to their data
 	params->c1fs = PyArray_DATA(params->c1fs_np);
 	params->c1es = PyArray_DATA(params->c1es_np);
 	self->p = PyArray_DATA(self->p_np);

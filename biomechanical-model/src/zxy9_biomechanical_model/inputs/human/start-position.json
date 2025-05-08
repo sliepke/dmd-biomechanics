@@ -1,0 +1,19 @@
+{
+	"root1": "hip",
+	"root1-position": [0, 1],
+	"root2": "top",
+	"root2-rotation": 90,
+	
+	"flexion-angles": {
+		"shoulder1": 0,
+		"shoulder2": 0,
+		"elbow1": 5,
+		"elbow2": 5,
+		"hip1": 0,
+		"hip2": 0,
+		"knee1": 5,
+		"knee2": 5,
+		"ankle1": 0,
+		"ankle2": 0
+	}
+}

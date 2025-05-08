@@ -1,0 +1,15 @@
+{
+	"segment-stiffness": 40500.5,
+	"segment-damping": 1000,
+	"joint-damping": 0.5,
+	
+	"point-masses": {
+		"p1": 3, "p2": 1.5
+	},
+	
+	"segments": [
+		["p1", "p2", 1]
+	],
+	
+	"joints": {}
+}

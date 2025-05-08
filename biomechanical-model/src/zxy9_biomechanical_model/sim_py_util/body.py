@@ -134,41 +134,36 @@ def load_body_file(filename):
 	return obj
 
 
-def load_start_position(body_obj, filename):
+def load_start_file(body_obj, filename):
 	"""
-	Load starting positions for each point mass in given body, read and computed
-	from given json-encoded file.
+	Load start position descriptor from the given json-encoded file. Verifies
+	that all expected keys exist (the expected keys are given in the 'Keys of
+	start_obj' part of the documentation for determine_start_positions()) are
+	given, and that all keys of 'flexion-angles' are joint names in the body_obj.
 	
-	A valid file is in JSON format and contains the following information:
-		- The 2d position of a 'root1' point mass
-		- An angle specifying the position of a 'root2' point mass. The angle
-		  is the counterclockwise rotation (deg) of the displacement vector from
-		  root1 to root2, relative to the horizontal ray starting at root1 and
-		  pointing towards +x.
-		- The joint angles of all joints in the body (or, enough to completely
-		  determine all point masses' positions).
-	The exact JSON data that is needed in the file is not specified here, but the
-	files inputs/human/start-position and inputs/bat/start-position are examples.
+	While getting the start position descriptor is as simple as json.load(),
+	this function gives a helpful message to the user on failure, and also
+	converts values to their expected types (such as int -> float).
 	
 	Parameters:
 		body_obj    dict, as returned by load_body_file()
 		filename    str, the file to read the starting position from
 	Returns:
-		The position of every point mass in the body, as a 1d numpy array in
-		the following order:
-			point 1 x, point 1 y, point 2 x, point 2 y, ...
+		An object (as returned by json.load) containing all values expected
+		to be in a start position file, some of which may have undergone
+		conversions (for example, int -> float).
 	"""
 	fn = filename
 	with open(fn) as file:
 		obj = json.load(file)
 	if type(obj) != dict:
-		raise ValueError("Filename: "+fn+", Problem: Expected root of JSON to be object")
+		raise ValueError(f"Filename: {fn}, Problem: Expected root of JSON to be object")
 	
 	# make sure root["root1"] is a string
 	convert_JSON_field(fn, obj, "root", "root1", [str], str)
 	# make sure root["root1"] is a point mass (i.e. a key in body_obj['point-masses'])
 	if obj["root1"] not in body_obj["point-masses"]:
-		raise ValueError("Filename: "+fn+", Problem: root1 ("+obj["root1"]+") is not in the body")
+		raise ValueError(f"Filename: {fn}, Problem: root1 ({obj["root1"]}) is not in the body")
 	# make sure root["root1-position"] is list with 2 floats
 	convert_JSON_field(fn, obj, "root", "root1-position", [list], list)
 	convert_JSON_el(fn, obj["root1-position"], "root[root1-position]", 0, [int, float], float)
@@ -177,30 +172,32 @@ def load_start_position(body_obj, filename):
 	convert_JSON_field(fn, obj, "root", "root2", [str], str)
 	# make sure root["root2"] is a point mass (i.e. a key in body_obj['point-masses'])
 	if obj["root2"] not in body_obj["point-masses"]:
-		raise ValueError("Filename: "+fn+", Problem: root2 ("+obj["root2"]+") is not in the body")
+		raise ValueError(f"Filename: {fn}, Problem: root2 ({obj["root2"]}) is not in the body")
 	# make sure root["root2-rotation"] is a float
 	convert_JSON_field(fn, obj, "root", "root2-rotation", [int, float], float)
 	# make sure root["flexion-angles"] is dict with a key for each joint in body_obj
 	convert_JSON_field(fn, obj, "root", "flexion-angles", [dict], dict)
 	for joint_name in body_obj["joints"]:
 		if joint_name not in obj["flexion-angles"]:
-			raise ValueError("Filename: "+fn+", Problem: The joint angle for "+joint_name+" was not specified (must be a float or null)")
+			raise ValueError(f"Filename: {fn}, Problem: The joint angle for" + \
+				f" {joint_name} was not specified (must be a float or null)")
 	
-	try:
-		return __positions(body_obj, obj["flexion-angles"], obj["root1"], obj["root1-position"][0], \
-			obj["root1-position"][1], obj["root2"], obj["root2-rotation"])
-	except RuntimeError as e:
-		raise RuntimeError("Filename: "+fn+", Problem: "+str(e))
+	return obj
+	
+	# this should go wherever u initially determine x, y start positions
+	#except RuntimeError as e:
+	#	raise RuntimeError("Filename: "+fn+", Problem: "+str(e))
 
 
-def __positions(body_obj, flexion_angles, root1, root1x, root1y, root2, theta):
+def determine_positions(body_obj, start_obj):
 	"""
 	Given:
 		- A body descriptor (as returned by load_body_file());
-		- Each joint angle of the body (at least, enough of them);
-		- The position of 1 point mass in the body;
-		- The angle of another point mass relative to the first point (as
-		  explained in Parameters below);
+		- A start descriptor (as returned by load_start_file()), containing:
+			- Each joint angle of the body (at least, enough of them);
+			- The position of 1 point mass in the body;
+			- The angle of another point mass relative to the first point (as
+			  explained in 'Keys of start_obj' below);
 	Returns the position of every point mass in the body.
 	
 	If this detects that there are multiple solutions to the set of constraints
@@ -208,14 +205,14 @@ def __positions(body_obj, flexion_angles, root1, root1x, root1y, root2, theta):
 	
 	Note that this implementation does not currently solve every solvable
 	set of constraints. But generally, if:
-		- The 2 roots (explained in Parameters) are endpoints of a common segment;
+		- The 2 roots (explained in 'Keys of start_obj') are endpoints of a
+		  common segment;
 		- The body is not weird (like having point masses that cannot reach
 		  each other by travelling through a path of segments);
 		- You specify every joint angle (i.e. no None values in flexion_angles);
 	Then it will probably work.
 	
-	Parameters:
-		body_obj        dict, as returned by load_body_file()
+	Keys of start_obj:
 		flexion_angles	dict, mapping each joint name (i.e. each key of
 		                body_obj["joints"]) to a float, which is that joint's
 		                angle (in degrees) in the desired starting position. The
@@ -223,12 +220,11 @@ def __positions(body_obj, flexion_angles, root1, root1x, root1y, root2, theta):
 		                unspecified and might result in an incomplete set of
 		                constraints (which will raise a RuntimeError).
 		root1           str, name of the root1 point mass, which is assumed to
-		                be in body_obj["point-masses"]
-		root1x          float, starting x position of root1
-		root1y          float, starting y position of root1
+		                be in body_obj["point-masses"].
+		root1-position  list of 2 floats, giving the start position of root1.
 		root2           str, name of the root2 point mass, which is assumed to
-		                be in body_obj["point-masses"]
-		theta           float, the angle that specifies the position of root2.
+		                be in body_obj["point-masses"].
+		root2-rotation  float, the angle that specifies the position of root2.
 		                The angle is the counterclockwise rotation (deg) of the
 		                displacement vector from root1 to root2, relative to the
 		                horizontal ray starting at root1 and pointing towards +x.
@@ -237,6 +233,19 @@ def __positions(body_obj, flexion_angles, root1, root1x, root1y, root2, theta):
 		the following order:
 			point 1 x, point 1 y, point 2 x, point 2 y, ...
 	"""
+	
+	# -- take keys out of start_obj -- #
+	# (i initially wrote the function with the keys directly as parameters)
+	
+	root1 = start_obj['root1']
+	root1x = start_obj['root1-position'][0]
+	root1y = start_obj['root1-position'][1]
+	root2 = start_obj['root2']
+	theta = start_obj['root2-rotation']
+	flexion_angles = start_obj['flexion-angles']
+	
+	# -- ... -- #
+	
 	theta *= math.pi / 180
 	positions = np.array([[0.0, 0.0]] * len(body_obj["point-masses"]))
 	

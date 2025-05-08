@@ -2,7 +2,7 @@
 	"root1": "ankle1",
 	"root1-position": [0, 0],
 	"root2": "toe1",
-	"root2-rotation": 20,
+	"root2-rotation": 0,
 	
 	"flexion-angles": {
 		"shoulder1": 0,
@@ -13,7 +13,7 @@
 		"hip2": 0,
 		"knee1": 0,
 		"knee2": 0,
-		"ankle1": 20,
+		"ankle1": 0,
 		"ankle2": 0
 	}
 }
