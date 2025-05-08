@@ -28,7 +28,9 @@ from python:
     def activations(simu):
         angle_error = (90 * math.pi / 180) - simu.thetas[SHOULDER_JOINT_INDEX]
         shoulder_act = min(1, max(-1, angle_error))
-        return np.array([shoulder_act, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=np.double)
+		acts = np.array([0.0] * 10)
+		acts[SHOULDER_JOINT_INDEX] = shoulder_act
+        return acts
     
     s = sim.Simulation( \
     	"RL/RL-inputs/human/body.json", "RL/RL-inputs/human/start-position.json", \
