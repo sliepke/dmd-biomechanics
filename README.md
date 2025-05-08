@@ -29,7 +29,7 @@ from python:
         angle_error = (90 * math.pi / 180) - simu.thetas[SHOULDER_JOINT_INDEX]
         shoulder_act = min(1, max(-1, angle_error))
         acts = np.array([0.0] * 10)
-		acts[SHOULDER_JOINT_INDEX] = shoulder_act
+        acts[SHOULDER_JOINT_INDEX] = shoulder_act
         return acts
     
     s = sim.Simulation( \
